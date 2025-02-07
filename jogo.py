@@ -1,3 +1,5 @@
+from urllib.request import build_opener
+
 import pygame
 import os
 
@@ -12,13 +14,13 @@ pygame.display.set_caption('Pixel Shooter')
 relogio = pygame.time.Clock()
 FPS = 60
 
-
 GRAVIDADE = 0.75
 
 movendo_esquerda = False
 movendo_direita = False
 atirando = False
 
+#bala
 imagem_bala = pygame.image.load('assets/img/icons/bala.png').convert_alpha()
 
 COR_DE_FUNDO = (144, 201, 120)
@@ -161,12 +163,17 @@ class Bala(pygame.sprite.Sprite):
             if jogador.vivo:
                 jogador.vida -= 5
                 self.kill()
+        #colisão com inimigo
+        if pygame.sprite.spritecollide(inimigo, grupo_balas, False):
+            if inimigo.vivo:
+                inimigo.vida -= 25
+                self.kill()
 
 #cria grupos de sprites
 grupo_balas = pygame.sprite.Group()
 
 jogador = Soldado('player',200,200, 3, 5, 10)
-
+inimigo = Soldado('enemy', 400,200,3,5,20)
 
 
 rodando = True
@@ -177,6 +184,9 @@ while rodando:
 
     jogador.update()
     jogador.desenho()
+
+    inimigo.update()
+    inimigo.desenho()
 
     grupo_balas.update()
     grupo_balas.draw(tela)
