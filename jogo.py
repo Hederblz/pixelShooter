@@ -3,10 +3,10 @@ import os
 
 pygame.init()
 
-largura_tela = 800
-altura_tela = int(largura_tela * 0.8)
+LARGURA_TELA  = 800
+ALTURA_TELA  = int(LARGURA_TELA  * 0.8)
 
-tela = pygame.display.set_mode((largura_tela, altura_tela))
+tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA))
 pygame.display.set_caption('Pixel Shooter')
 
 relogio = pygame.time.Clock()
@@ -17,20 +17,28 @@ GRAVIDADE = 0.75
 
 movendo_esquerda = False
 movendo_direita = False
+atirando = False
 
-fundo = (144, 201, 120)
-linha_vermelha = (255, 0, 0)
+imagem_bala = pygame.image.load('assets/img/icons/bala.png').convert_alpha()
 
-def desenho_fundo():
-    tela.fill(fundo)
-    pygame.draw.line(tela, linha_vermelha, (0, 300), (largura_tela, 300))
+COR_DE_FUNDO = (144, 201, 120)
+LINHA_VERMELHA = (255, 0, 0)
+
+def desenha_fundo():
+    tela.fill(COR_DE_FUNDO)
+    pygame.draw.line(tela, LINHA_VERMELHA, (0, 300), (LARGURA_TELA, 300))
 
 class Soldado(pygame.sprite.Sprite):
-    def __init__(self, tipo_personagem, x, y, escala, velocidade):
+    def __init__(self, tipo_personagem, x, y, escala, velocidade, municao):
         pygame.sprite.Sprite.__init__(self)
         self.vivo = True
         self.tipo_personagem = tipo_personagem
         self.velocidade = velocidade
+        self.municao = municao
+        self.municao_inicial = municao
+        self.cooldown_tiro = 0
+        self.vida = 100
+        self.vida_maxima = self.vida
         self.direcao = 1
         self.vel_y = 0
         self.pular = False
@@ -42,7 +50,7 @@ class Soldado(pygame.sprite.Sprite):
         self.update_time = pygame.time.get_ticks()
 
         #carregar a imagens do jogador
-        tipos_de_animacao = ['Idle', 'Run', 'Jump']
+        tipos_de_animacao = ['Idle', 'Run', 'Jump', 'Death']
         for animacao in tipos_de_animacao:
             temp_lista = []
             num_de_frames = len(os.listdir(f'assets/img/{self.tipo_personagem}/{animacao}'))
@@ -54,6 +62,14 @@ class Soldado(pygame.sprite.Sprite):
         self.imagem = self.lista_de_animacao[self.acao][self.frame_index]
         self.rect = self.imagem.get_rect()
         self.rect.center = (x, y)
+
+    def update(self):
+        self.update_animacao()
+        self.verifica_vivo()
+        # atualiza cooldown
+        if self.cooldown_tiro > 0:
+            self.cooldown_tiro -= 1
+
 
     def mover(self, movendo_esquerda, movendo_direita):
 
@@ -88,6 +104,14 @@ class Soldado(pygame.sprite.Sprite):
         self.rect.x += dx
         self.rect.y += dy
 
+    def atira(self):
+        if self.cooldown_tiro == 0 and self.municao > 0:
+            self.cooldown_tiro = 20
+            bala = Bala(self.rect.centerx + (0.6 * self.rect.size[0] * self.direcao), self.rect.centery, self.direcao)
+            grupo_balas.add(bala)
+            # reduz munição
+            self.municao -= 1
+
     def update_animacao(self):
         ANIMATION_COOLDOWN = 100
         self.imagem = self.lista_de_animacao[self.acao][self.frame_index]
@@ -95,18 +119,53 @@ class Soldado(pygame.sprite.Sprite):
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
         if self.frame_index >= len(self.lista_de_animacao[self.acao]):
-            self.frame_index = 0
+            if self.acao == 3:
+                self.frame_index = len(self.lista_de_animacao[self.acao]) - 1
+            else:
+                self.frame_index = 0
 
-    def updade_acao(self, nova_acao):
+    def atualiza_acao(self, nova_acao):
         if nova_acao != self.acao:
             self.acao = nova_acao
             self.frame_index = 0
             self.update_time = pygame.time.get_ticks()
 
+    def verifica_vivo(self):
+        if self.vida <= 0:
+            self.vida = 0
+            self.velocidade = 0
+            self.vivo = False
+            self.atualiza_acao(3)
+
     def desenho(self):
         tela.blit(pygame.transform.flip(self.imagem, self.virado, False), self.rect)
 
-jogador = Soldado('player',200,200, 3, 5)
+class Bala(pygame.sprite.Sprite):
+    def __init__(self, x, y, direcao):
+        pygame.sprite.Sprite.__init__(self)
+        self.velocidade = 10
+        self.image = imagem_bala
+        self.rect = self.image.get_rect()
+        self.rect.center = (x, y)
+        self.direcao = direcao
+
+    def update(self):
+        #move bala
+        self.rect.x += (self.direcao * self.velocidade)
+        #verifica se bala saiu da tela
+        if self.rect.right < 0 or self.rect.left > LARGURA_TELA:
+            self.kill()
+
+        #verifica colisão com personagens
+        if pygame.sprite.spritecollide(jogador, grupo_balas, False):
+            if jogador.vivo:
+                jogador.vida -= 5
+                self.kill()
+
+#cria grupos de sprites
+grupo_balas = pygame.sprite.Group()
+
+jogador = Soldado('player',200,200, 3, 5, 10)
 
 
 
@@ -114,18 +173,24 @@ rodando = True
 while rodando:
 
     relogio.tick(FPS)
-    desenho_fundo()
-    jogador.update_animacao()
+    desenha_fundo()
+
+    jogador.update()
     jogador.desenho()
+
+    grupo_balas.update()
+    grupo_balas.draw(tela)
 
 
     if jogador.vivo:
+        if atirando:
+            jogador.atira()
         if jogador.no_ar:
-            jogador.updade_acao(2)
+            jogador.atualiza_acao(2)
         elif movendo_esquerda or movendo_direita:
-            jogador.updade_acao(1)
+            jogador.atualiza_acao(1)
         else:
-            jogador.updade_acao(0)
+            jogador.atualiza_acao(0)
         jogador.mover(movendo_esquerda, movendo_direita)
 
     for evento in pygame.event.get():
@@ -138,6 +203,8 @@ while rodando:
                 movendo_esquerda = True
             if evento.key == pygame.K_d:
                 movendo_direita = True
+            if evento.key == pygame.K_SPACE:
+                atirando = True
             if evento.key == pygame.K_w and jogador.vivo:
                 jogador.pular = True
             if evento.key == pygame.K_ESCAPE:
@@ -149,9 +216,8 @@ while rodando:
                 movendo_esquerda = False
             if evento.key == pygame.K_d:
                 movendo_direita = False
-
-
-
+            if evento.key == pygame.K_SPACE:
+                atirando = False
 
     pygame.display.update()
 
