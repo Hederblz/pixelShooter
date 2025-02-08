@@ -1,7 +1,6 @@
-from urllib.request import build_opener
-
 import pygame
 import os
+import random
 
 pygame.init()
 
@@ -14,7 +13,8 @@ pygame.display.set_caption('Pixel Shooter')
 relogio = pygame.time.Clock()
 FPS = 60
 
-GRAVIDADE = 0.75
+GRAVIDADE = 0.6
+TAMANHO_TILE = 40
 
 movendo_esquerda = False
 movendo_direita = False
@@ -22,13 +22,30 @@ atirando = False
 
 #bala
 imagem_bala = pygame.image.load('assets/img/icons/bala.png').convert_alpha()
+#caixas de itens
+imagem_caixa_vida = pygame.image.load('assets/img/icons/caixa_de_saude.png').convert_alpha()
+imagem_caixa_municao = pygame.image.load('assets/img/icons/caixa_de_municao.png').convert_alpha()
+caixas_itens = {
+    'Vida'   : imagem_caixa_vida,
+    'Municao'    : imagem_caixa_municao,
+}
 
 COR_DE_FUNDO = (144, 201, 120)
-LINHA_VERMELHA = (255, 0, 0)
+VERMELHO  = (255, 0, 0)
+BRANCO = (255, 255, 255)
+VERDE = (0, 255, 0)
+PRETO = (0, 0, 0)
+
+#define fonte
+fonte = pygame.font.SysFont('Futura', 30)
+
+def desenhar_texto(texto, fonte, cor_texto, x, y):
+    imagem = fonte.render(texto, True, cor_texto)
+    tela.blit(imagem, (x, y))
 
 def desenha_fundo():
     tela.fill(COR_DE_FUNDO)
-    pygame.draw.line(tela, LINHA_VERMELHA, (0, 300), (LARGURA_TELA, 300))
+    pygame.draw.line(tela, VERMELHO, (0, 300), (LARGURA_TELA, 300))
 
 class Soldado(pygame.sprite.Sprite):
     def __init__(self, tipo_personagem, x, y, escala, velocidade, municao):
@@ -50,6 +67,11 @@ class Soldado(pygame.sprite.Sprite):
         self.frame_index = 0
         self.acao = 0
         self.update_time = pygame.time.get_ticks()
+        # variáveis específicas da IA
+        self.contador_movimento = 0
+        self.visao = pygame.Rect(0, 0, 150, 20)
+        self.ocioso = False
+        self.contador_ocioso = 0
 
         #carregar a imagens do jogador
         tipos_de_animacao = ['Idle', 'Run', 'Jump', 'Death']
@@ -71,7 +93,6 @@ class Soldado(pygame.sprite.Sprite):
         # atualiza cooldown
         if self.cooldown_tiro > 0:
             self.cooldown_tiro -= 1
-
 
     def mover(self, movendo_esquerda, movendo_direita):
 
@@ -114,6 +135,39 @@ class Soldado(pygame.sprite.Sprite):
             # reduz munição
             self.municao -= 1
 
+    def ia(self):
+        if self.vivo and jogador.vivo:  # Assuming 'player' is now 'jogador'
+            if self.ocioso == False and random.randint(1, 200) == 1:
+                self.atualiza_acao(0)  # 0: ocioso
+                self.ocioso = True
+                self.contador_ocioso = 50
+            # verifica se a IA está perto do jogador
+            if self.visao.colliderect(jogador.rect):
+                # para de correr e encara o jogador
+                self.atualiza_acao(0)  # 0: ocioso
+                # atira
+                self.atira()
+            else:
+                if self.ocioso == False:
+                    if self.direcao == 1:
+                        ia_movendo_direita = True
+                    else:
+                        ia_movendo_direita = False
+                    ia_movendo_esquerda = not ia_movendo_direita
+                    self.mover(ia_movendo_esquerda, ia_movendo_direita)
+                    self.atualiza_acao(1)  # 1: correndo
+                    self.contador_movimento += 1
+                    # atualiza a visão da IA conforme o inimigo se move
+                    self.visao.center = (self.rect.centerx + 75 * self.direcao, self.rect.centery)
+
+                    if self.contador_movimento > TAMANHO_TILE:
+                        self.direcao *= -1
+                        self.contador_movimento *= -1
+                else:
+                    self.contador_ocioso -= 1
+                    if self.contador_ocioso <= 0:
+                        self.ocioso = False
+
     def update_animacao(self):
         ANIMATION_COOLDOWN = 100
         self.imagem = self.lista_de_animacao[self.acao][self.frame_index]
@@ -142,6 +196,43 @@ class Soldado(pygame.sprite.Sprite):
     def desenho(self):
         tela.blit(pygame.transform.flip(self.imagem, self.virado, False), self.rect)
 
+class CaixaItem(pygame.sprite.Sprite):
+    def __init__(self, tipo_item, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.tipo_item = tipo_item
+        self.image = caixas_itens[self.tipo_item]
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TAMANHO_TILE // 2, y + (TAMANHO_TILE - self.image.get_height()))
+
+    def update(self):
+        #verifica se o jogador pegou a caixa
+        if pygame.sprite.collide_rect(self, jogador):  # Assuming 'player' is now 'jogador'
+            #verifica que tipo de caixa era
+            if self.tipo_item == 'Vida':
+                jogador.vida += 25
+                if jogador.vida > jogador.vida_maxima:
+                    jogador.vida = jogador.vida_maxima
+            elif self.tipo_item == 'Municao':
+                jogador.municao += 15
+            #remove a caixa de item
+            self.kill()
+
+class BarraVida():
+    def __init__(self, x, y, vida, vida_maxima):
+        self.x = x
+        self.y = y
+        self.vida = vida
+        self.vida_maxima = vida_maxima
+
+    def desenhar(self, vida):
+        #atualiza com a nova vida
+        self.vida = vida
+        #calcula a proporção da vida
+        proporcao = self.vida / self.vida_maxima
+        pygame.draw.rect(tela, PRETO, (self.x - 2, self.y - 2, 154, 24))
+        pygame.draw.rect(tela, VERMELHO, (self.x, self.y, 150, 20))
+        pygame.draw.rect(tela, VERDE, (self.x, self.y, 150 * proporcao, 20))
+
 class Bala(pygame.sprite.Sprite):
     def __init__(self, x, y, direcao):
         pygame.sprite.Sprite.__init__(self)
@@ -164,43 +255,65 @@ class Bala(pygame.sprite.Sprite):
                 jogador.vida -= 5
                 self.kill()
         #colisão com inimigo
-        if pygame.sprite.spritecollide(inimigo, grupo_balas, False):
-            if inimigo.vivo:
-                inimigo.vida -= 25
-                self.kill()
+        for inimigo in grupo_inimigos:
+            if pygame.sprite.spritecollide(inimigo, grupo_balas, False):
+                if inimigo.vivo:
+                    inimigo.vida -= 25
+                    self.kill()
 
 #cria grupos de sprites
+grupo_inimigos = pygame.sprite.Group()
 grupo_balas = pygame.sprite.Group()
+grupo_caixas_itens = pygame.sprite.Group()
+
+#temporário - cria caixas de itens
+caixa_item = CaixaItem('Vida', 100, 260)
+grupo_caixas_itens.add(caixa_item)
+caixa_item = CaixaItem('Municao', 400, 260)
+grupo_caixas_itens.add(caixa_item)
 
 jogador = Soldado('player',200,200, 3, 5, 10)
-inimigo = Soldado('enemy', 400,200,3,5,20)
-
+barra_vida = BarraVida(10, 10, jogador.vida, jogador.vida)
+inimigo = Soldado('enemy', 500,200,3,5,20)
+inimigo2 = Soldado('enemy', 300,200,3,5,20)
+grupo_inimigos.add(inimigo)
+grupo_inimigos.add(inimigo2)
 
 rodando = True
 while rodando:
 
     relogio.tick(FPS)
     desenha_fundo()
+    # mostra a vida do jogador
+    barra_vida.desenhar(jogador.vida)
+    # mostra munição
+    desenhar_texto(f'Balas:', fonte, BRANCO, 10, 35)
+    for x in range(jogador.municao):
+        tela.blit(imagem_bala, (90 + (x * 10), 40))
 
     jogador.update()
     jogador.desenho()
 
-    inimigo.update()
-    inimigo.desenho()
+    for inimigo in grupo_inimigos:
+        inimigo.ia()
+        inimigo.update()
+        inimigo.desenho()
 
     grupo_balas.update()
-    grupo_balas.draw(tela)
+    grupo_caixas_itens.update()
 
+    grupo_balas.draw(tela)
+    grupo_caixas_itens.draw(tela)
 
     if jogador.vivo:
         if atirando:
             jogador.atira()
         if jogador.no_ar:
-            jogador.atualiza_acao(2)
+            jogador.atualiza_acao(2)# jump
         elif movendo_esquerda or movendo_direita:
-            jogador.atualiza_acao(1)
+            jogador.atualiza_acao(1)# run
         else:
-            jogador.atualiza_acao(0)
+            jogador.atualiza_acao(0)# idle
         jogador.mover(movendo_esquerda, movendo_direita)
 
     for evento in pygame.event.get():
