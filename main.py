@@ -35,6 +35,17 @@ VERMELHO  = (255, 0, 0)
 BRANCO = (255, 255, 255)
 VERDE = (0, 255, 0)
 PRETO = (0, 0, 0)
+COR_CEU  = (135, 206, 235)  # Sky blue
+COR_CHAO  = (160, 82, 45)  # Brown
+COR_NUVEM  = (255, 255, 255)  # White
+
+nuvens  = [
+    {"x": 50, "y": 100, "raio": 30},
+    {"x": 200, "y": 50, "raio": 40},
+    {"x": 350, "y": 150, "raio": 25},
+    {"x": 500, "y": 80, "raio": 35},
+    {"x": 650, "y": 120, "raio": 45},
+]
 
 #define fonte
 fonte = pygame.font.SysFont('Futura', 30)
@@ -44,8 +55,11 @@ def desenhar_texto(texto, fonte, cor_texto, x, y):
     tela.blit(imagem, (x, y))
 
 def desenha_fundo():
-    tela.fill(COR_DE_FUNDO)
-    pygame.draw.line(tela, VERMELHO, (0, 300), (LARGURA_TELA, 300))
+    tela.fill(COR_CEU)
+    pygame.draw.line(tela, VERMELHO, (0, 500), (LARGURA_TELA, 500))
+    pygame.draw.rect(tela, COR_CHAO , (0, 500, 5000, 500))
+    for nuven in nuvens:
+        pygame.draw.circle(tela, COR_NUVEM , (nuven["x"], nuven["y"]), nuven["raio"])
 
 class Soldado(pygame.sprite.Sprite):
     def __init__(self, tipo_personagem, x, y, escala, velocidade, municao):
@@ -120,8 +134,8 @@ class Soldado(pygame.sprite.Sprite):
         dy += self.vel_y
 
         #checa a colisao com o chao
-        if self.rect.bottom + dy > 300:
-            dy = 300 - self.rect.bottom
+        if self.rect.bottom + dy > 500:
+            dy = 500 - self.rect.bottom
             self.no_ar = False
 
         self.rect.x += dx
@@ -267,15 +281,15 @@ grupo_balas = pygame.sprite.Group()
 grupo_caixas_itens = pygame.sprite.Group()
 
 #temporário - cria caixas de itens
-caixa_item = CaixaItem('Vida', 100, 260)
+caixa_item = CaixaItem('Vida', 100, 460)
 grupo_caixas_itens.add(caixa_item)
-caixa_item = CaixaItem('Municao', 400, 260)
+caixa_item = CaixaItem('Municao', 400, 460)
 grupo_caixas_itens.add(caixa_item)
 
-jogador = Soldado('player',200,200, 3, 5, 10)
+jogador = Soldado('player',200,500, 3, 5, 10)
 barra_vida = BarraVida(10, 10, jogador.vida, jogador.vida)
-inimigo = Soldado('enemy', 500,200,3,5,20)
-inimigo2 = Soldado('enemy', 300,200,3,5,20)
+inimigo = Soldado('enemy', 500,500,3,5,20)
+inimigo2 = Soldado('enemy', 300,500,3,5,20)
 grupo_inimigos.add(inimigo)
 grupo_inimigos.add(inimigo2)
 
