@@ -245,6 +245,8 @@ class Soldado(pygame.sprite.Sprite):
             self.velocidade = 0
             self.vivo = False
             self.atualiza_acao(3)
+            if self.tipo_personagem == 'enemy':  # Verifica se é um inimigo antes de remover
+                self.kill()  # Remove o inimigo do grupo de sprites
 
     def desenho(self):
         tela.blit(pygame.transform.flip(self.imagem, self.virado, False), self.rect)
