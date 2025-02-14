@@ -72,18 +72,27 @@ MAX_CAIXAS_MUNICAO = 10  # Número máximo de caixas de munição
 TEMPO_GERACAO_CAIXA_MUNICAO = 10 * FPS  # Tempo entre as gerações de caixas de munição em frames
 tempo_desde_ultima_geracao_municao = 0  # Tempo desde a última geração de caixas de munição
 
-jogo_ativo = True  # Variável para controlar se o jogo está ativo ou se o jogador morreu
 
 def desenhar_texto(texto, fonte, cor_texto, x, y):
     imagem = fonte.render(texto, True, cor_texto)
     tela.blit(imagem, (x, y))
 
 def desenha_fundo():
-    tela.fill(COR_CEU) # Preenche a tela com a cor do céu
-    pygame.draw.line(tela, VERMELHO, (0, 500), (LARGURA_TELA, 500)) # Desenha uma linha vermelha
-    pygame.draw.rect(tela, COR_CHAO , (0, 500, 5000, 500)) # Desenha o chão
+    tela.fill(COR_CEU)  # Preenche a tela com a cor do céu
+
+    # Desenha o chão com diferentes tons de marrom para dar mais profundidade
+    for i in range(0, LARGURA_TELA, TAMANHO_TILE):
+        cor_chao = (160 - (i // TAMANHO_TILE) * 2, 82 - (i // TAMANHO_TILE) * 2, 45 - (i // TAMANHO_TILE) * 2)
+        pygame.draw.rect(tela, cor_chao, (i, 500, TAMANHO_TILE, ALTURA_TELA - 500))
+
+    # Desenha as nuvens com tamanhos e posições variadas
     for nuven in nuvens:
-        pygame.draw.circle(tela, COR_NUVEM , (nuven["x"], nuven["y"]), nuven["raio"]) # Desenha as nuvens
+        pygame.draw.circle(tela, COR_NUVEM, (nuven["x"], nuven["y"]), nuven["raio"])
+
+    # Desenha montanhas ao fundo
+    pygame.draw.polygon(tela, (100, 100, 100), [(0, 500), (100, 400), (200, 500)])
+    pygame.draw.polygon(tela, (100, 100, 100), [(300, 500), (400, 350), (500, 500)])
+    pygame.draw.polygon(tela, (100, 100, 100), [(600, 500), (700, 420), (800, 500)])
 
 class Soldado(pygame.sprite.Sprite):
     def __init__(self, tipo_personagem, x, y, escala, velocidade, municao):
@@ -236,8 +245,6 @@ class Soldado(pygame.sprite.Sprite):
             self.velocidade = 0
             self.vivo = False
             self.atualiza_acao(3)
-            global jogo_ativo  # Acessa a variável global jogo_ativo
-            jogo_ativo = False  # Define jogo_ativo como False quando o jogador morre
 
     def desenho(self):
         tela.blit(pygame.transform.flip(self.imagem, self.virado, False), self.rect)
@@ -298,7 +305,7 @@ class Bala(pygame.sprite.Sprite):
         #verifica colisão com personagens
         if pygame.sprite.spritecollide(jogador, grupo_balas, False):
             if jogador.vivo:
-                jogador.vida -= 5
+                jogador.vida -= 10
                 self.kill()
         #colisão com inimigo
         for inimigo in grupo_inimigos:
@@ -330,14 +337,12 @@ grupo_caixas_itens.add(caixa_item)
 jogador = Soldado('player',200,500, 3, 5, 10)
 barra_vida = BarraVida(10, 10, jogador.vida, jogador.vida)
 inimigo0 = Soldado('enemy', 500,500,3,5,20)
-inimigo1 = Soldado('enemy', 300,500,3,5,20)
 grupo_inimigos.add(inimigo0)
-grupo_inimigos.add(inimigo1)
 
 rodando = True
 while rodando:
 
-    if jogo_ativo:
+    if jogador.vivo:
 
         relogio.tick(FPS)
         desenha_fundo()
@@ -421,9 +426,8 @@ while rodando:
                 jogador.pular = True
             if evento.key == pygame.K_ESCAPE:
                 rodando = False
-            if evento.key == pygame.K_r and not jogo_ativo:  # Verifica se a tecla "R" foi pressionada e o jogo não está ativo
+            if evento.key == pygame.K_r and not jogador.vivo:  # Verifica se a tecla "R" foi pressionada e o jogagor não ta vivo
                 reiniciar()
-                jogo_ativo = True
 
         # soltando o botao
         if evento.type == pygame.KEYUP:
