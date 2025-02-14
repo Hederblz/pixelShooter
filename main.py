@@ -189,7 +189,7 @@ class Soldado(pygame.sprite.Sprite):
             self.municao -= 1
 
     def ia(self):
-        if self.vivo and jogador.vivo:  # Assuming 'player' is now 'jogador'
+        if self.vivo and jogador.vivo: # Verifica se o soldado e o jogador estão vivos
             if self.ocioso == False and random.randint(1, 200) == 1:
                 self.atualiza_acao(0)  # 0: ocioso
                 self.ocioso = True
@@ -222,12 +222,12 @@ class Soldado(pygame.sprite.Sprite):
                         self.ocioso = False
 
     def update_animacao(self):
-        ANIMATION_COOLDOWN = 100
-        self.imagem = self.lista_de_animacao[self.acao][self.frame_index]
-        if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
-            self.update_time = pygame.time.get_ticks()
+        ANIMATION_COOLDOWN = 100 # Define o tempo de espera entre os frames da animação
+        self.imagem = self.lista_de_animacao[self.acao][self.frame_index] # Define a imagem atual do soldado
+        if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN: # Verifica se já passou tempo suficiente para mudar o frame da animação
+            self.update_time = pygame.time.get_ticks() # Reinicia o contador de tempo
             self.frame_index += 1
-        if self.frame_index >= len(self.lista_de_animacao[self.acao]):
+        if self.frame_index >= len(self.lista_de_animacao[self.acao]): # Verifica se o índice do frame atual é maior ou igual ao número de frames da animação
             if self.acao == 3:
                 self.frame_index = len(self.lista_de_animacao[self.acao]) - 1
             else:
@@ -261,7 +261,7 @@ class CaixaItem(pygame.sprite.Sprite):
 
     def update(self):
         #verifica se o jogador pegou a caixa
-        if pygame.sprite.collide_rect(self, jogador):  # Assuming 'player' is now 'jogador'
+        if pygame.sprite.collide_rect(self, jogador): # Verifica se o rect da caixa de item colide com o rect do jogador
             #verifica que tipo de caixa era
             if self.tipo_item == 'Vida':
                 jogador.vida += 25
@@ -305,15 +305,15 @@ class Bala(pygame.sprite.Sprite):
             self.kill()
 
         #verifica colisão com personagens
-        if pygame.sprite.spritecollide(jogador, grupo_balas, False):
+        if pygame.sprite.spritecollide(jogador, grupo_balas, False): # Verifica se a bala colidiu com o inimigo
             if jogador.vivo:
-                jogador.vida -= 10
+                jogador.vida -= 10 # Diminui a vida do jogador
                 self.kill()
         #colisão com inimigo
         for inimigo in grupo_inimigos:
-            if pygame.sprite.spritecollide(inimigo, grupo_balas, False):
+            if pygame.sprite.spritecollide(inimigo, grupo_balas, False): # Verifica se a bala colidiu com o inimigo
                 if inimigo.vivo:
-                    inimigo.vida -= 25
+                    inimigo.vida -= 25  # Diminui a vida do inimigo
                     self.kill()
 
 def reiniciar():
