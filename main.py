@@ -50,6 +50,22 @@ nuvens  = [
 #define fonte
 fonte = pygame.font.SysFont('Futura', 30)
 
+# Variáveis para controle de geração de inimigos
+MAX_INIMIGOS = 100  # Número máximo de inimigos
+TEMPO_GERACAO_INIMIGO = 5 * FPS  # Tempo entre as gerações de inimigos em frames
+tempo_desde_ultima_geracao = 0  # Tempo desde a última geração de inimigos
+
+# Variáveis para controle de geração de caixas de itens
+MAX_CAIXAS_VIDA = 5  # Número máximo de caixas de vida
+TEMPO_GERACAO_CAIXA_VIDA = 12 * FPS  # Tempo entre as gerações de caixas de vida em frames
+tempo_desde_ultima_geracao_vida = 0  # Tempo desde a última geração de caixas de vida
+
+MAX_CAIXAS_MUNICAO = 10  # Número máximo de caixas de munição
+TEMPO_GERACAO_CAIXA_MUNICAO = 10 * FPS  # Tempo entre as gerações de caixas de munição em frames
+tempo_desde_ultima_geracao_municao = 0  # Tempo desde a última geração de caixas de munição
+
+jogo_ativo = True  # Variável para controlar se o jogo está ativo ou se o jogador morreu
+
 def desenhar_texto(texto, fonte, cor_texto, x, y):
     imagem = fonte.render(texto, True, cor_texto)
     tela.blit(imagem, (x, y))
@@ -122,6 +138,12 @@ class Soldado(pygame.sprite.Sprite):
             self.virado = False
             self.direcao = 1
 
+            # Verifica limites horizontais
+            if self.rect.x + dx < 0:
+                dx = -self.rect.x  # Impede que o jogador saia da tela pela esquerda
+            elif self.rect.x + dx + self.rect.width > LARGURA_TELA:
+                dx = LARGURA_TELA - self.rect.x - self.rect.width  # Impede que o jogador saia da tela pela direita
+
         if self.pular == True and self.no_ar == False:
             self.vel_y = -11
             self.pular = False
@@ -130,7 +152,7 @@ class Soldado(pygame.sprite.Sprite):
         #aplica a gravidade
         self.vel_y += GRAVIDADE
         if self.vel_y > 10:
-            self.vel_y
+            self.vel_y = 10
         dy += self.vel_y
 
         #checa a colisao com o chao
@@ -206,6 +228,8 @@ class Soldado(pygame.sprite.Sprite):
             self.velocidade = 0
             self.vivo = False
             self.atualiza_acao(3)
+            global jogo_ativo  # Acessa a variável global jogo_ativo
+            jogo_ativo = False  # Define jogo_ativo como False quando o jogador morre
 
     def desenho(self):
         tela.blit(pygame.transform.flip(self.imagem, self.virado, False), self.rect)
@@ -275,6 +299,15 @@ class Bala(pygame.sprite.Sprite):
                     inimigo.vida -= 25
                     self.kill()
 
+def reiniciar():
+    # Reinicia as variáveis do jogo
+    jogador.vivo = True
+    jogador.vida = 100
+    jogador.municao = jogador.municao_inicial
+    jogador.velocidade = 5
+    grupo_inimigos.empty()  # remove todos os inimigos da tela
+    grupo_caixas_itens.empty()  # remove todas as caixas da tela
+
 #cria grupos de sprites
 grupo_inimigos = pygame.sprite.Group()
 grupo_balas = pygame.sprite.Group()
@@ -288,36 +321,69 @@ grupo_caixas_itens.add(caixa_item)
 
 jogador = Soldado('player',200,500, 3, 5, 10)
 barra_vida = BarraVida(10, 10, jogador.vida, jogador.vida)
-inimigo = Soldado('enemy', 500,500,3,5,20)
-inimigo2 = Soldado('enemy', 300,500,3,5,20)
-grupo_inimigos.add(inimigo)
-grupo_inimigos.add(inimigo2)
+inimigo0 = Soldado('enemy', 500,500,3,5,20)
+inimigo1 = Soldado('enemy', 300,500,3,5,20)
+grupo_inimigos.add(inimigo0)
+grupo_inimigos.add(inimigo1)
 
 rodando = True
 while rodando:
 
-    relogio.tick(FPS)
-    desenha_fundo()
-    # mostra a vida do jogador
-    barra_vida.desenhar(jogador.vida)
-    # mostra munição
-    desenhar_texto(f'Balas:', fonte, BRANCO, 10, 35)
-    for x in range(jogador.municao):
-        tela.blit(imagem_bala, (90 + (x * 10), 40))
+    if jogo_ativo:
 
-    jogador.update()
-    jogador.desenho()
+        relogio.tick(FPS)
+        desenha_fundo()
+        # mostra a vida do jogador
+        barra_vida.desenhar(jogador.vida)
+        # mostra munição
+        desenhar_texto(f'Balas:', fonte, BRANCO, 10, 35)
+        for x in range(jogador.municao):
+            tela.blit(imagem_bala, (90 + (x * 10), 40))
 
-    for inimigo in grupo_inimigos:
-        inimigo.ia()
-        inimigo.update()
-        inimigo.desenho()
+        jogador.update()
+        jogador.desenho()
 
-    grupo_balas.update()
-    grupo_caixas_itens.update()
+        for inimigo in grupo_inimigos:
+            inimigo.ia()
+            inimigo.update()
+            inimigo.desenho()
 
-    grupo_balas.draw(tela)
-    grupo_caixas_itens.draw(tela)
+        grupo_balas.update()
+        grupo_caixas_itens.update()
+
+        grupo_balas.draw(tela)
+        grupo_caixas_itens.draw(tela)
+
+        # Geração de inimigos
+        tempo_desde_ultima_geracao += 1  # Incrementa o tempo desde a última geração
+        if len(grupo_inimigos) < MAX_INIMIGOS and tempo_desde_ultima_geracao >= TEMPO_GERACAO_INIMIGO:
+            # Gera um novo inimigo em uma posição aleatória
+            x_inimigo = random.randint(0, LARGURA_TELA)
+            inimigo = Soldado('enemy', x_inimigo, 500, 3, 5, 20)
+            grupo_inimigos.add(inimigo)
+            tempo_desde_ultima_geracao = 0  # Reseta o tempo desde a última geração
+
+        # Geração de caixas de vida
+        tempo_desde_ultima_geracao_vida += 1
+        if len(grupo_caixas_itens.sprites()) < MAX_CAIXAS_VIDA and tempo_desde_ultima_geracao_vida >= TEMPO_GERACAO_CAIXA_VIDA:
+            x_caixa = random.randint(0, LARGURA_TELA)
+            y_caixa = 460
+            caixa_item = CaixaItem('Vida', x_caixa, y_caixa)
+            grupo_caixas_itens.add(caixa_item)
+            tempo_desde_ultima_geracao_vida = 0
+
+        # Geração de caixas de munição
+        tempo_desde_ultima_geracao_municao += 1
+        if len(grupo_caixas_itens.sprites()) < MAX_CAIXAS_MUNICAO and tempo_desde_ultima_geracao_municao >= TEMPO_GERACAO_CAIXA_MUNICAO:
+            x_caixa = random.randint(0, LARGURA_TELA)
+            y_caixa = 460
+            caixa_item = CaixaItem('Municao', x_caixa, y_caixa)
+            grupo_caixas_itens.add(caixa_item)
+            tempo_desde_ultima_geracao_municao = 0
+    else:  # Se o jogador morreu
+        tela.fill(PRETO)  # Preenche a tela de preto
+        desenhar_texto("Game Over", fonte, VERMELHO, LARGURA_TELA // 2 - 100, ALTURA_TELA // 2 - 50)
+        desenhar_texto("Pressione R para recomeçar", fonte, BRANCO, LARGURA_TELA // 2 - 150, ALTURA_TELA // 2 + 50)
 
     if jogador.vivo:
         if atirando:
@@ -346,6 +412,9 @@ while rodando:
                 jogador.pular = True
             if evento.key == pygame.K_ESCAPE:
                 rodando = False
+            if evento.key == pygame.K_r and not jogo_ativo:  # Verifica se a tecla "R" foi pressionada e o jogo não está ativo
+                reiniciar()
+                jogo_ativo = True
 
         # soltando o botao
         if evento.type == pygame.KEYUP:
