@@ -65,7 +65,7 @@ tempo_desde_ultima_geracao = 0  # Tempo desde a última geração de inimigos
 
 # Variáveis para controle de geração de caixas de itens
 MAX_CAIXAS_VIDA = 5  # Número máximo de caixas de vida
-TEMPO_GERACAO_CAIXA_VIDA = 12 * FPS  # Tempo entre as gerações de caixas de vida em frames
+TEMPO_GERACAO_CAIXA_VIDA = 5 * FPS  # Tempo entre as gerações de caixas de vida em frames
 tempo_desde_ultima_geracao_vida = 0  # Tempo desde a última geração de caixas de vida
 
 MAX_CAIXAS_MUNICAO = 10  # Número máximo de caixas de munição
