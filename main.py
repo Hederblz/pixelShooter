@@ -4,41 +4,49 @@ import random
 
 pygame.init()
 
+# Define as dimensões da tela
 LARGURA_TELA  = 800
 ALTURA_TELA  = int(LARGURA_TELA  * 0.8)
 
+# Cria a tela do jogo
 tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA))
 pygame.display.set_caption('Pixel Shooter')
 
+# Inicializa o relógio para controlar os FPS
 relogio = pygame.time.Clock()
 FPS = 60
 
+# Define a gravidade
 GRAVIDADE = 0.6
 TAMANHO_TILE = 40
 
+# Variáveis de controle de movimento e tiro
 movendo_esquerda = False
 movendo_direita = False
 atirando = False
 
-#bala
+# Carrega as imagens das balas e caixas de itens
 imagem_bala = pygame.image.load('assets/img/icons/bala.png').convert_alpha()
-#caixas de itens
 imagem_caixa_vida = pygame.image.load('assets/img/icons/caixa_de_saude.png').convert_alpha()
 imagem_caixa_municao = pygame.image.load('assets/img/icons/caixa_de_municao.png').convert_alpha()
+
+# Dicionário de caixas de itens
 caixas_itens = {
     'Vida'   : imagem_caixa_vida,
     'Municao'    : imagem_caixa_municao,
 }
 
+# Define as cores
 COR_DE_FUNDO = (144, 201, 120)
 VERMELHO  = (255, 0, 0)
 BRANCO = (255, 255, 255)
 VERDE = (0, 255, 0)
 PRETO = (0, 0, 0)
-COR_CEU  = (135, 206, 235)  # Sky blue
-COR_CHAO  = (160, 82, 45)  # Brown
-COR_NUVEM  = (255, 255, 255)  # White
+COR_CEU  = (135, 206, 235)
+COR_CHAO  = (160, 82, 45)
+COR_NUVEM  = (255, 255, 255)
 
+# Define as propriedades das nuvens
 nuvens  = [
     {"x": 50, "y": 100, "raio": 30},
     {"x": 200, "y": 50, "raio": 40},
@@ -47,7 +55,7 @@ nuvens  = [
     {"x": 650, "y": 120, "raio": 45},
 ]
 
-#define fonte
+# Define a fonte para o texto do jogo
 fonte = pygame.font.SysFont('Futura', 30)
 
 # Variáveis para controle de geração de inimigos
@@ -71,11 +79,11 @@ def desenhar_texto(texto, fonte, cor_texto, x, y):
     tela.blit(imagem, (x, y))
 
 def desenha_fundo():
-    tela.fill(COR_CEU)
-    pygame.draw.line(tela, VERMELHO, (0, 500), (LARGURA_TELA, 500))
-    pygame.draw.rect(tela, COR_CHAO , (0, 500, 5000, 500))
+    tela.fill(COR_CEU) # Preenche a tela com a cor do céu
+    pygame.draw.line(tela, VERMELHO, (0, 500), (LARGURA_TELA, 500)) # Desenha uma linha vermelha
+    pygame.draw.rect(tela, COR_CHAO , (0, 500, 5000, 500)) # Desenha o chão
     for nuven in nuvens:
-        pygame.draw.circle(tela, COR_NUVEM , (nuven["x"], nuven["y"]), nuven["raio"])
+        pygame.draw.circle(tela, COR_NUVEM , (nuven["x"], nuven["y"]), nuven["raio"]) # Desenha as nuvens
 
 class Soldado(pygame.sprite.Sprite):
     def __init__(self, tipo_personagem, x, y, escala, velocidade, municao):
