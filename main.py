@@ -384,6 +384,7 @@ while rodando:
         tela.fill(PRETO)  # Preenche a tela de preto
         desenhar_texto("Game Over", fonte, VERMELHO, LARGURA_TELA // 2 - 100, ALTURA_TELA // 2 - 50)
         desenhar_texto("Pressione R para recomeçar", fonte, BRANCO, LARGURA_TELA // 2 - 150, ALTURA_TELA // 2 + 50)
+        desenhar_texto("Pressione ESC para sair", fonte, BRANCO, LARGURA_TELA // 2 - 150, ALTURA_TELA // 2 + 100)
 
     if jogador.vivo:
         if atirando:
